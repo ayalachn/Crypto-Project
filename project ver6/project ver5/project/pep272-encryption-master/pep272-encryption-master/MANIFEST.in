@@ -1,0 +1,5 @@
+global-include *.pyi
+exclude .eggs/**
+include MANIFEST.in
+include CHANGELOG.rst
+include LICENSE

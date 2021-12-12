@@ -1,0 +1,35 @@
+# Cached files
+__pycache__/
+*.py[co]
+*.class
+
+# Build
+dist/
+build/
+egg/
+*.egg-info/
+# Sometimes those are there...
+*.egg
+*.eggs
+
+.project
+.pydevproject
+
+#Minimal Jython install for uploading and testing
+jython.bat
+jython.jar
+
+# Cache
+.cache/
+
+# Coverage
+htmlcov/
+.coverage
+
+# Pychar
+.idea/
+
+*.pyd
+*.so
+
+**/_build/

@@ -1,0 +1,8 @@
+pycryptodome
+pytest>=3.0.0
+pytest-runner>=2.0.0
+setuptools>=27.3
+wheel
+sphinx
+sphinx_rtd_theme
+coverage
