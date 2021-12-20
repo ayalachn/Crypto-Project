@@ -57,10 +57,13 @@ except ImportError:
     # Variable names are from from the reference implementation
     # pylint: disable=invalid-name,redefined-builtin
     def _encrypt_int(k, v, n=32):
-        v0, v1 = v
+        v0, v1 = v # v0 = 32bit left, v1 = 32bit right
 
+        # mask of (2^32-1) is a more efficient way of (modulos 2^32) operation.
+        # x % 2^32 <=> x & (2^32-1)
+        # E.g., x=5,000,000,000. x % 2^32 = 705032704 <=> x & (2^32-1) = 705032704
         sum, delta, mask = 0, 0x9e3779b9, 0xffffffff
-        for _ in range(n):
+        for _ in range(n): # 32 rounds (Fiestel Network)
             v0 = (v0 + (((v1 << 4 ^ v1 >> 5) + v1) ^
                         (sum + k[sum & 3]))) & mask
             sum = (sum + delta) & mask
@@ -203,11 +206,12 @@ class XTEACipher(PEP272Cipher):
 
         # Python 2 is still supported by this package
         # pylint: disable=super-with-arguments
+        # Dad encrypts the IV blocks
         super(XTEACipher, self).__init__(key, mode, **kwargs)
 
         self.rounds = int(kwargs.get("rounds", 64))
         self.cycles = self.rounds // 2
-        self.endian = kwargs.get("endian", "!")
+        self.endian = kwargs.get("endian", "!") # Big Endian (MSB at lowest address arr[0])
         
         print("XTEACipher:\nKEY: ", self.key , "\nKEY SIZE: ", len(self.key),"\n")
         # self.key = int(self.key, 16)
@@ -215,15 +219,15 @@ class XTEACipher(PEP272Cipher):
 
         self.__k = struct.unpack(self.endian + "4L", self.key)
 
-    def encrypt_block(self, key, block, **kwargs):
+    def encrypt_block(self, key, block, **kwargs): # 'block' = block to encrypt (IV)
         """Encrypt a single block with XTEA."""
-        encrypted_block = _encrypt_int(
+        encrypted_block = _encrypt_int( # [v0, v1] (64 bits)
             self.__k,
-            struct.unpack(self.endian + "2L", block),
+            struct.unpack(self.endian + "2L", block), # convert from bytes with given format to normal
             self.cycles
         )
 
-        return struct.pack(
+        return struct.pack( # combine together to one 64 bit object
             self.endian + "2L",
             *encrypted_block
         )

@@ -108,7 +108,7 @@ convert
     :type byte: bytes or str or int
     :return: Unicode code point
     :rtype: int"""
-    return byte if isinstance(byte, int) else ord(byte)
+    return byte if isinstance(byte, int) else ord(byte) # ord('c') = ascii of 'c'
 
 
 def xor_strings(one, two):

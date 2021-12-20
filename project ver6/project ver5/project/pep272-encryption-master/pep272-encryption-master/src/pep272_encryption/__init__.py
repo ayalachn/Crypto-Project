@@ -132,7 +132,7 @@ class PEP272Cipher(ABC):
         self.kwargs = kwargs
 
         self._check_arguments()
-        self._keystream = self._create_keystream()
+        self._keystream = self._create_keystream() # keystream-all encrypted IV's
 
     def _check_iv(self):
         if self._status is None:
@@ -243,7 +243,7 @@ class PEP272Cipher(ABC):
         :rtype: bytes
         """
         if self.mode in (MODE_OFB, MODE_CTR):
-            return self._encrypt_with_keystream(string)
+            return self._encrypt_with_keystream(string) # do XOR with PlainText & Encrypted IV via XTEA
 
         if self.mode == MODE_CFB:
             return self._encrypt_cfb(string)
@@ -361,8 +361,8 @@ class PEP272Cipher(ABC):
 
     def _encrypt_with_keystream(self, data):
         """Encrypts data with the set keystream."""
-        xor = [x ^ y for (x, y) in zip(map(b_ord, data),
-                                       self._keystream)]
+        xor = [x ^ y for (x, y) in zip(map(b_ord, data), # data-PlainText
+                                       self._keystream)] # keystream-encryped IV
         return bytes(bytearray(xor))  # Faster
 
     def _encrypt_cfb(self, data, decrypt=False):
@@ -390,13 +390,15 @@ class PEP272Cipher(ABC):
 
         while True:
             if self.mode == MODE_OFB:
-                _next = self._status
+                _next = self._status # _status=I_0=IV, I_1, I_2, ...
             elif self.mode == MODE_CTR:
                 _next = self._counter()
                 if len(_next) != self.block_size:
                     raise TypeError("Counter length must be block_size")
 
+            # encrypted block (next IV) by child
             self._status = self.encrypt_block(self.key, _next, **self.kwargs)
 
             for k in self._status:
-                yield b_ord(k)
+                yield b_ord(k) # if IV is not a number, convert to number
+                # return each time the IV as a number

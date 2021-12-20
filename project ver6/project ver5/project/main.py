@@ -25,8 +25,8 @@ class Sender:
     XTEA_key = os.urandom(16)   # generate secret symmetric key for XTEA
     print("THE XTEA KEY IS: (GENERATED)")
     print(XTEA_key)
-    XTEA_iv = os.urandom(8)     # generate IV for XTEA
-    XTEA_Encryptor = XTEA.XTEACipher(key=XTEA_key, IV=XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
+    XTEA_iv = None
+    
     XTEA_encryptedKey=None
     
     # EL-GAMAL ON EC:
@@ -36,6 +36,7 @@ class Sender:
     # signed using El-Gamal on ECC.
     def setMessage(self, msg):
         self.msg=msg
+        self.XTEA_iv = os.urandom(8)     # generate IV for XTEA
                     
     # receive public RSA key for encryption and RSA's n modolous
     def setRsaPublicKey(self, RsaE, RsaN):
@@ -62,13 +63,17 @@ class Sender:
         r, s = self.ElGamal.digitalSignMessage(message)
         return r, s 
     
+    def getIV(self):
+        return self.XTEA_iv
     # Returns:
     # cipherText: encrypted message (via XTEA on OFB algorithm)
     # XTEA_iv: XTEA's public initial vector
     # {r, s}: message's digital signature (via El-Gamal on EC)   
     def getEncryptMessage(self):
        # encrypt plain text via XTEA on OFB
-       cipherText =  self.XTEA_Encryptor.encrypt(self.msg)
+       XTEA_Encryptor = XTEA.XTEACipher(key=self.XTEA_key, IV=self.XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
+
+       cipherText =  XTEA_Encryptor.encrypt(self.msg)
        
        # digital sign message (via El-Gamal on EC)
        r, s = self.digitalSignMessage(self.msg)
@@ -124,6 +129,10 @@ class Receiver:
             return None
         return plainText
     
+    def setIV(self, IV): # If this is not the first message to decrypt
+      self.XTEA_Encryptor = XTEA.XTEACipher(key=binascii.unhexlify(self.XTEA_key), IV=IV, mode=XTEA.MODE_OFB, segment_size=64)
+
+    
     
 alice = Sender()
 bob = Receiver()
@@ -132,14 +141,14 @@ bob.ElGamal.setOthersPublicKey(alice.ElGamal.getMyPublicKey())
 
 RsaE, RsaN = bob.getRsaPublicKey()
 alice.setRsaPublicKey(RsaE, RsaN)
-a,b,c,d = alice.getEncryptedXTEAKey() #CHANGE VARS NAME ****
-bob.setXTEAKey(a,b,c,d)
+alicePlainText = "Hello World"
+print("Alice wants to encrypt: ", alicePlainText)
+alice.setMessage(alicePlainText) # alice sets plain text to encrypt and sends to bob
+encrypted_key,iv,R,s = alice.getEncryptedXTEAKey() #CHANGE VARS NAME ****
+bob.setXTEAKey(encrypted_key,iv,R,s)
 
 # # both parties hold the secret key for the symmetric algorithm - 
 # # we can now send the message from alice to bob using XTEA (the symmetric algorithm)
-alicePlainText = "Hello"
-print("Alice wants to encrypt: ", alicePlainText)
-alice.setMessage(alicePlainText) # alice sets plain text to encrypt and send to bob
 cipherText, r, s=alice.getEncryptMessage()
 bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
 print("Bob's decrypted text: ", bobPlainText)
@@ -149,3 +158,18 @@ if bobPlainText != alicePlainText:
     print("Decryption unsuccessful")
 else:
     print("Decryption successful")  
+    
+    
+alicePlainText = "Bye World"
+print("Alice wants to encrypt: ", alicePlainText)
+alice.setMessage(alicePlainText) # alice sets plain text to encrypt and send to bob
+cipherText, r, s=alice.getEncryptMessage()
+bob.setIV(alice.getIV())
+bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
+print("Bob's decrypted text: ", bobPlainText)
+
+# Algorithm check
+if bobPlainText != alicePlainText:
+    print("Decryption unsuccessful")
+else:
+    print("Decryption successful")      
