@@ -1,4 +1,5 @@
 """
+Not relevant for OFB mode!
 Simple counter for the CTR mode of operation.
 """
 

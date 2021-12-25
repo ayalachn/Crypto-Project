@@ -59,11 +59,11 @@ except ImportError:
     def _encrypt_int(k, v, n=32):
         v0, v1 = v # v0 = 32bit left, v1 = 32bit right
 
-        # mask of (2^32-1) is a more efficient way of (modulos 2^32) operation.
+        # mask of (2^32-1 = 0xffffffff) is a more efficient way of (modulos 2^32) operation.
         # x % 2^32 <=> x & (2^32-1)
         # E.g., x=5,000,000,000. x % 2^32 = 705032704 <=> x & (2^32-1) = 705032704
         sum, delta, mask = 0, 0x9e3779b9, 0xffffffff
-        for _ in range(n): # 32 rounds (Fiestel Network)
+        for _ in range(n): # 32 cycles (each cycle contain 2 rounds of Fiestel Cipher)
             v0 = (v0 + (((v1 << 4 ^ v1 >> 5) + v1) ^
                         (sum + k[sum & 3]))) & mask
             sum = (sum + delta) & mask
@@ -72,12 +72,13 @@ except ImportError:
 
         return v0, v1
 
-    def _decrypt_int(k, v, n=32): #hello
-        v0, v1 = v
+    def _decrypt_int(k, v, n=32):
+        v0, v1 = v # v0 = 32bit left, v1 = 32bit right
 
+        # mask of (2^32-1 = 0xffffffff) is a more efficient way of (modulos 2^32) operation.
         delta, mask = 0x9e3779b9, 0xffffffff
         sum = (delta * n) & mask
-        for _ in range(n):
+        for _ in range(n): # 32 cycles (each cycle contain 2 rounds of Fiestel Cipher)
             v1 = (v1 - (((v0 << 4 ^ v0 >> 5) + v0) ^
                         (sum + k[sum >> 11 & 3]))) & mask
             sum = (sum - delta) & mask
@@ -200,34 +201,35 @@ class XTEACipher(PEP272Cipher):
 
     def __init__(self, key, mode=None, **kwargs):
         if mode is None:
-            mode = MODE_ECB
-            warnings.warn("Implicitly selecting ECB mode of operation. "
-                          "The ECB mode is usually insecure to use.")
+            mode = MODE_OFB
+            warnings.warn("Implicitly selecting OFB mode of operation.")
 
         # Python 2 is still supported by this package
         # pylint: disable=super-with-arguments
         # Dad encrypts the IV blocks
         super(XTEACipher, self).__init__(key, mode, **kwargs)
 
-        self.rounds = int(kwargs.get("rounds", 64))
-        self.cycles = self.rounds // 2
+        self.rounds = int(kwargs.get("rounds", 64)) #number of rounds of feistel cipher (2 rounds in one cycles)
+        self.cycles = self.rounds // 2 #number of cycles - 32 cycles
         self.endian = kwargs.get("endian", "!") # Big Endian (MSB at lowest address arr[0])
         
         print("XTEACipher:\nKEY: ", self.key , "\nKEY SIZE: ", len(self.key),"\n")
-        # self.key = int(self.key, 16)
-        # print("XTEACipher after casting:\nKEY: ", self.key, "KEY SIZE: ", len(self.key))
 
+        #unpack convert from bytes to new format- split the key of 128 bit to 4 subkeys that each one in 32 bit
         self.__k = struct.unpack(self.endian + "4L", self.key)
 
     def encrypt_block(self, key, block, **kwargs): # 'block' = block to encrypt (IV)
         """Encrypt a single block with XTEA."""
         encrypted_block = _encrypt_int( # [v0, v1] (64 bits)
             self.__k,
-            struct.unpack(self.endian + "2L", block), # convert from bytes with given format to normal
+            struct.unpack(self.endian + "2L", block), # convert from bytes to new format
+                                                      # convert block of 64 bits to couple - [v0,v1]
+                                                      # v0 is 32 bit and v1 is 32 bit
             self.cycles
         )
 
-        return struct.pack( # combine together to one 64 bit object
+        # pack convert from the format to bytes
+        return struct.pack( # combine together to one 64 bit
             self.endian + "2L",
             *encrypted_block
         )
@@ -236,11 +238,14 @@ class XTEACipher(PEP272Cipher):
         """Decrypt a single block with XTEA."""
         decrypted_block = _decrypt_int(
             self.__k,
-            struct.unpack(self.endian + "2L", block),
+            struct.unpack(self.endian + "2L", block), # convert from bytes to new format
+                                                      # convert block of 64 bits to couple - [v0,v1]
+                                                      # v0 is 32 bit and v1 is 32 bit
             self.cycles
         )
 
-        return struct.pack(
+        # pack convert from the format to bytes
+        return struct.pack( # combine together to one 64 bit
             self.endian + "2L",
             *decrypted_block
         )

@@ -105,6 +105,7 @@ class PEP272Cipher(ABC):
 
     block_size = NotImplemented
 
+    # not used in our project
     @property
     def IV(self):
         if self.mode in (MODE_ECB, MODE_CTR):
@@ -112,6 +113,7 @@ class PEP272Cipher(ABC):
         else:
             return self._status
 
+    # not used in our project
     @IV.setter
     def IV(self, value):
         raise AttributeError("This property is read-only, and cannot be "
@@ -119,7 +121,7 @@ class PEP272Cipher(ABC):
 
     def __init__(self, key, mode, IV=None, **kwargs):
         "A cipher class as defined in PEP-272"
-        if not key:
+        if not key: #check if the key is valid
             raise ValueError("'key' cannot have a length of 0")
 
         self.key = key
@@ -131,9 +133,10 @@ class PEP272Cipher(ABC):
 
         self.kwargs = kwargs
 
-        self._check_arguments()
+        self._check_arguments() # for OFB mode check if the IV is valid
         self._keystream = self._create_keystream() # keystream-all encrypted IV's
 
+    # Check if the IV is legal- check if the size of IV is equal to block_size 
     def _check_iv(self):
         if self._status is None:
             raise TypeError("For CBC, CFB, PGP and OFB mode an IV is "
@@ -141,6 +144,8 @@ class PEP272Cipher(ABC):
         if len(self._status) != self.block_size and self.mode != MODE_PGP:
             raise ValueError("'IV' length must be block_size ({})".format(
                 self.block_size))
+            
+        # not used in our project    
         elif self.mode == MODE_PGP:
             if not len(self._status) in (self.block_size,
                                          self.block_size + 2):
@@ -148,6 +153,7 @@ class PEP272Cipher(ABC):
                     ("'IV' length must be block_size ({})"
                      "or blocksize + 2".format(self.block_size)))
 
+    # not relevant for OFB mode, just for CFB
     def _check_segment_size(self):
         if not self.segment_size:
             raise TypeError("missing required positional argument for CFB:"
@@ -161,6 +167,7 @@ class PEP272Cipher(ABC):
             raise TypeError("segment_size must be between 8 and "
                             "block_size*8 and a multiple of 8")
 
+    # not relevant for OFB mode, just for CTR
     def _check_counter(self):
         if self._counter is None:
             raise TypeError(
@@ -196,10 +203,10 @@ class PEP272Cipher(ABC):
         if self.mode in (MODE_CBC, MODE_CFB, MODE_OFB, MODE_PGP):
             self._check_iv()
 
-        if self.mode == MODE_CFB:
+        if self.mode == MODE_CFB: # not used in our project  
             self._check_segment_size()
 
-        if self.mode == MODE_CTR:
+        if self.mode == MODE_CTR: # not used in our project  
             self._check_counter()
 
     def encrypt(self, string):
@@ -245,6 +252,8 @@ class PEP272Cipher(ABC):
         if self.mode in (MODE_OFB, MODE_CTR):
             return self._encrypt_with_keystream(string) # do XOR with PlainText & Encrypted IV via XTEA
 
+        # not used in our project  
+        
         if self.mode == MODE_CFB:
             return self._encrypt_cfb(string)
 
@@ -304,13 +313,17 @@ class PEP272Cipher(ABC):
             *string*.
         :rtype: bytes
         """
+        
+        # we call to encrypt and do the same like the encryption
         if self.mode in (MODE_OFB, MODE_CTR):
             return self.encrypt(string)
 
-        if self.mode == MODE_CFB:
+        # not used in our project 
+        
+        if self.mode == MODE_CFB: 
             return self._encrypt_cfb(string, True)
 
-        if self.mode not in (MODE_ECB, MODE_CBC):
+        if self.mode not in (MODE_ECB, MODE_CBC): 
             raise ValueError("Unknown mode of operation")
 
         out = []
@@ -329,6 +342,7 @@ class PEP272Cipher(ABC):
 
         return b"".join(out)
 
+    # abstract method - used in the child
     @abstractmethod
     def encrypt_block(self, key, block, **kwargs):
         """Dummy function for the encryption of a single block.
@@ -344,6 +358,7 @@ class PEP272Cipher(ABC):
         :rtype: bytes"""
         raise NotImplementedError
 
+    # abstract method - used in the child
     @abstractmethod
     def decrypt_block(self, key, block, **kwargs):
         """Dummy function for the decryption of a single block.
@@ -359,12 +374,15 @@ class PEP272Cipher(ABC):
         :rtype: bytes"""
         raise NotImplementedError
 
+    # do XOR with data & Encrypted IV (via XTEA).
+    # keystream contains all the encrypted IV's that we need. 
     def _encrypt_with_keystream(self, data):
         """Encrypts data with the set keystream."""
         xor = [x ^ y for (x, y) in zip(map(b_ord, data), # data-PlainText
-                                       self._keystream)] # keystream-encryped IV
+                                       self._keystream)] # keystream- all encryped IV's
         return bytes(bytearray(xor))  # Faster
 
+    # not relevant to OFB mode, just for CBF
     def _encrypt_cfb(self, data, decrypt=False):
         """Encrypts data in CFB mode."""
         out = []
@@ -390,13 +408,14 @@ class PEP272Cipher(ABC):
 
         while True:
             if self.mode == MODE_OFB:
-                _next = self._status # _status=I_0=IV, I_1, I_2, ...
-            elif self.mode == MODE_CTR:
+                _next = self._status # _status=IV, IV_1, IV_2, ...
+            elif self.mode == MODE_CTR: # not relevant for OFB
                 _next = self._counter()
                 if len(_next) != self.block_size:
                     raise TypeError("Counter length must be block_size")
 
-            # encrypted block (next IV) by child
+            # encrypted block by child (IV is the block that encrypt) 
+            # self._status get from the method the next IV that we want to encrypt
             self._status = self.encrypt_block(self.key, _next, **self.kwargs)
 
             for k in self._status:
