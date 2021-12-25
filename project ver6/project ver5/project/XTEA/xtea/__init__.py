@@ -212,8 +212,6 @@ class XTEACipher(PEP272Cipher):
         self.rounds = int(kwargs.get("rounds", 64)) #number of rounds of feistel cipher (2 rounds in one cycles)
         self.cycles = self.rounds // 2 #number of cycles - 32 cycles
         self.endian = kwargs.get("endian", "!") # Big Endian (MSB at lowest address arr[0])
-        
-        print("XTEACipher:\nKEY: ", self.key , "\nKEY SIZE: ", len(self.key),"\n")
 
         #unpack convert from bytes to new format- split the key of 128 bit to 4 subkeys that each one in 32 bit
         self.__k = struct.unpack(self.endian + "4L", self.key)

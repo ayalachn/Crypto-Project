@@ -138,6 +138,7 @@ bob.setXTEAKey(encrypted_key,iv,R,s)
 # Both parties hold the secret key for the symmetric algorithm - 
 # we can now send the message from Alice to Bob using XTEA (the symmetric algorithm)
 cipherText, r, s=alice.getEncryptMessage()
+print("\nSending to Bob...\n");
 bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
 print("\nBob's received message after decryption:\n", bobPlainText)
 
@@ -145,13 +146,14 @@ print("\nBob's received message after decryption:\n", bobPlainText)
 if bobPlainText != alicePlainText:
     print("Decryption was unsuccessful.\n")
 else:
-    print("Decryption was successful\.n")  
+    print("Decryption was successful.\n")  
     
 # A second message from Alice to Bob to demonstrate choosing a random IV for XTEA
 alicePlainText = "\nDear Bob,\nThank you for the flowers.\nHope to see you again tomorrow,\nAlice\n"
 print("Alice's message to Bob before encryption:\n", alicePlainText)
 alice.setMessage(alicePlainText) # Alice sets plain text to encrypt and send to bob
 cipherText, r, s=alice.getEncryptMessage()
+print("\nSending to Bob...\n");
 bob.setIV(alice.getIV())
 bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
 print("\nBob's received message after decryption:\n", bobPlainText)
