@@ -60,8 +60,11 @@ class RSA:
     def chooseKeys(self):
         
         # choose two random numbers within the range of lines in the txt file example
-        rand1 = random.randint(100, 130) #ORIGIANL (100,300) ****************************************************************
-        rand2 = random.randint(100, 130) #Note: we chose small values to make the program run faster. For real use, we choose
+        # *** Note: we chose small values to make the program run faster. 
+        # For real use, we will choose values that the multiplication between them 
+        # will give a value of size of 2^128
+        rand1 = random.randint(100, 130)
+        rand2 = random.randint(100, 130)
     
         # store the txt file of prime numbers in a python list
         fo = open('RSA_/primes-to-100k.txt', 'r')
@@ -69,8 +72,8 @@ class RSA:
         fo.close()
     
         # store our prime numbers in these variables
-        prime1 = int(lines[rand1])
-        prime2 = int(lines[rand2])
+        prime1 = int(lines[rand1]) #p
+        prime2 = int(lines[rand2]) #q
         self.__p = prime1
         self.__q = prime2
     
