@@ -193,7 +193,7 @@ class RSA:
     
         return message
     
-# Main for checking RSA
+# Main for checking RSAP:
 """
 def main():
     # we select our primes and generate our public and private keys,
