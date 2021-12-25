@@ -8,11 +8,11 @@ either encrypt or decrypt messages.
 import random
 
 class RSA:
-    __p = None
-    __q = None
-    __e = 0
-    __d = None
-    __n = None
+    __p = None #first private prime number
+    __q = None #second private prime number
+    __e = 0 #public key
+    __d = None #private key
+    __n = None #public value
     
     # Returns the public modulos
     def getN(self):
@@ -22,20 +22,16 @@ class RSA:
     def getPublicKey(self):
         return self.__e
     
+    #Performs the Euclidean algorithm and returns the gcd of a and b
     def gcd(self, a, b):
-        """
-        Performs the Euclidean algorithm and returns the gcd of a and b
-        """
         if (b == 0):
             return a
         else:
             return self.gcd(b, a % b)
 
+    #Performs the extended Euclidean algorithm. 
+    #Returns the gcd, coefficient of a, and coefficient of b
     def xgcd(self, a, b):
-        """
-        Performs the extended Euclidean algorithm
-        Returns the gcd, coefficient of a, and coefficient of b
-        """
         x, old_x = 0, 1
         y, old_y = 1, 0
     
@@ -47,30 +43,25 @@ class RSA:
     
         return a, old_x, old_y
     
+
+    #Choose public key e: Chooses a random number, 1 < e < totient, and checks whether or not 
+    #it is coprime with the totient, that is, gcd(e, totient) = 1
     def chooseE(self, totient):
-        """
-        Chooses a random number, 1 < e < totient, and checks whether or not it is 
-        coprime with the totient, that is, gcd(e, totient) = 1
-        """
         while (True):
             self.__e = random.randrange(2, totient)
     
             if (self.gcd(self.__e, totient) == 1):
                 return self.__e
-    
+            
+    # ChooseKeys Func- Selects two random prime numbers from a list of prime 
+    # numbers which has values that go up to 100k. It creates a text file and stores
+    # the two numbers there where they can be used later. Using the prime numbers,
+    # it also computes and stores the public and private keys in two separate files.
     def chooseKeys(self):
-        """
-        Selects two random prime numbers from a list of prime numbers which has 
-        values that go up to 100k. It creates a text file and stores the two 
-        numbers there where they can be used later. Using the prime numbers, 
-        it also computes and stores the public and private keys in two separate 
-        files.
-        """
-    
-        # choose two random numbers within the range of lines where 
-        # the prime numbers are not too small and not too big
-        rand1 = random.randint(100, 130) #ORIGIANL (100,300)
-        rand2 = random.randint(100, 130)
+        
+        # choose two random numbers within the range of lines in the txt file example
+        rand1 = random.randint(100, 130) #ORIGIANL (100,300) ****************************************************************
+        rand2 = random.randint(100, 130) #Note: we chose small values to make the program run faster. For real use, we choose
     
         # store the txt file of prime numbers in a python list
         fo = open('RSA_/primes-to-100k.txt', 'r')
@@ -84,9 +75,9 @@ class RSA:
         self.__q = prime2
     
         # compute n, totient, e
-        self.__n = prime1 * prime2
-        totient = (prime1 - 1) * (prime2 - 1)
-        self.__e = self.chooseE(totient)
+        self.__n = prime1 * prime2 # n=pq
+        totient = (prime1 - 1) * (prime2 - 1) # phi(n) = (p-1)(q-1)
+        self.__e = self.chooseE(totient) #Choose e that fits the terms
     
         # compute d, 1 < d < totient such that ed = 1 (mod totient)
         # e and d are inverses (mod totient)
@@ -97,7 +88,9 @@ class RSA:
             self.__d = x + totient
         else:
             self.__d = x
-    
+        
+        
+        # The keys are saved in txt files. There is a file for the public keys and for the private keys
         # write the public keys n and e to a file
         f_public = open('public_keys.txt', 'w')
         f_public.write(str(self.__n) + '\n')
@@ -109,29 +102,28 @@ class RSA:
         f_private.write(str(self.__d) + '\n')
         f_private.close()
     
-    def encrypt(self, message, file_name = 'public_keys.txt', block_size = 2):
-        """
-        Encrypts a message (string) by raising each character's ASCII value to the 
-        power of e and taking the modulus of n. Returns a string of numbers.
-        file_name refers to file where the public key is located. If a file is not 
-        provided, it assumes that we are encrypting the message using our own 
-        public keys. Otherwise, it can use someone else's public key, which is 
-        stored in a different file.
-        block_size refers to how many characters make up one group of numbers in 
-        each index of encrypted_blocks.
-        """
     
-        try:
-            fo = open(file_name, 'r')
+    # encrypt func- Encrypts a message (string) by raising each character's ASCII value
+    # to the power of e and taking the modulus of n. Returns a string of numbers.
+    # file_name refers to file where the public key is located. If a file is not 
+    # provided, it assumes that we are encrypting the message using our own 
+    # public keys. Otherwise, it can use someone else's public key, which is 
+    # stored in a different file.
+    # block_size refers to how many characters make up one group of numbers in 
+    # each index of encrypted_blocks.
+    def encrypt(self, message, file_name = 'public_keys.txt', block_size = 2):
     
         # check for the possibility that the user tries to encrypt something
         # using a public key that is not found
+        try:
+            fo = open(file_name, 'r')
+            
         except FileNotFoundError:
             print('That file is not found.')
         else:
-            self.__n = int(fo.readline())
-            self.__e = int(fo.readline())
-            fo.close()
+            self.__n = int(fo.readline()) #read n value from public key txt file
+            self.__e = int(fo.readline()) #read e value from public key txt file
+            fo.close() #close public key txt file
     
             encrypted_blocks = []
             ciphertext = -1
@@ -162,21 +154,18 @@ class RSA:
             # create a string from the numbers
             encrypted_message = " ".join(encrypted_blocks)
     
-            print("RSA FINISHED ENCRYPTION") #TEMP ********************************************
             return encrypted_message
-    
+        
+    # Decrypts a string of numbers by raising each number to the power of d and 
+    # taking the modulus of n. Returns the message as a string.
+    # block_size refers to how many characters make up one group of numbers in
+    # each index of blocks.
     def decrypt(self, blocks, block_size = 2):
-        """
-        Decrypts a string of numbers by raising each number to the power of d and 
-        taking the modulus of n. Returns the message as a string.
-        block_size refers to how many characters make up one group of numbers in
-        each index of blocks.
-        """
     
         fo = open('private_keys.txt', 'r')
-        self.__n = int(fo.readline())
-        self.__d = int(fo.readline())
-        fo.close()
+        self.__n = int(fo.readline()) #read n value from private key txt file
+        self.__d = int(fo.readline()) #read d value from private key txt file
+        fo.close() #close private keys file
     
         # turns the string into a list of ints
         list_blocks = blocks.split(' ')
@@ -202,16 +191,9 @@ class RSA:
                 int_blocks[i] //= 1000
             message += tmp
     
-    
-    
-        # temp
-        print("the rsa decrypt result is:")
-        print(message)
-    
-    
-    
-    
         return message
+    
+# Main for checking RSA
 """
 def main():
     # we select our primes and generate our public and private keys,
