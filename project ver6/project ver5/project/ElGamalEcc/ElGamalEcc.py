@@ -32,7 +32,7 @@ class ElGamalEcc:
         p (Fp - field over prime p) = 29
         n (prime order) = 31
     """
-    field = SubGroup(p=29, g=(5, 7), n=31, h=1) # G = {5, 7}, which has order of n = 31
+    field = SubGroup(p=29, g=(5, 7), n=31, h=1) # G = {5, 7}, which has order of 31
     
     """
     Create Elliptic Curve y2 ≡ x3 - x + 16 (mod 31), over given field (above).
@@ -40,9 +40,9 @@ class ElGamalEcc:
         a = -1
         b = 16
     """
-    curve = Curve(a=-1, b=16, field=field, name='p1707') # y2 ≡ x3 - x + 16 (mod 31)
+    curve = Curve(a=-1, b=16, field=field, name='p1707') # y2 ≡ x3 - x + 16 (mod 29)
     G = curve.g                     # set G=(5,7) - generator of curve
-    n = 31                          
+    n = 29                          
     
     def __init__(self, prKey): # class constructor
         """
