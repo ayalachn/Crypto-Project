@@ -9,6 +9,11 @@ try:
 except NameError:
     LONG_TYPE = int
 
+
+"""
+Returns {s, t} in the Extended Euclidean Algorithm:
+    a*s + b*t = 1
+"""
 def egcd(a, b):
     if a == 0:
         return b, 0, 1
@@ -16,7 +21,10 @@ def egcd(a, b):
         g, y, x = egcd(b % a, a)
         return g, x - (b // a) * y, y
 
-
+"""
+Returns the inverse of a under modulo p
+a^-1 (mod p) = x (mod p)
+"""
 def mod_inv(a, p):
     if a < 0:
         return p - mod_inv(-a, p)
@@ -26,7 +34,9 @@ def mod_inv(a, p):
     else:
         return x % p
 
-
+"""
+y^2 ≡ x^3 + a*x + b
+"""
 class Curve(object):
     def __init__(self, a, b, field, name="undefined"):
         self.name = name
@@ -35,20 +45,36 @@ class Curve(object):
         self.field = field
         self.g = Point(self, self.field.g[0], self.field.g[1])
 
+    """
+    Let a ∈ ℝ, b ∈ ℝ, be constants such that 
+       4a³ + 27b² ≠ 0
+    Curve must be non-singular.   
+    """
     def is_singular(self):
         return (4 * self.a**3 + 27 * self.b**2) % self.field.p == 0
-
+    """
+    Returns True if point (x,y) is on curve. False if not.
+    """
     def on_curve(self, x, y):
         return (y**2 - x**3 - self.a * x - self.b) % self.field.p == 0
-
+    """
+    equals function - returns True if given curve is equal to this curve. 
+    returns False otherwise.
+    Called each time we do curve1 == curve2
+    """
     def __eq__(self, other):
         if not isinstance(other, Curve):
             return False
         return self.a == other.a and self.b == other.b and self.field == other.field
-
+    """
+    not equals function - returns true if given curve is not equal to this curve.
+    Called each time we do curve1 != curve2
+    """
     def __ne__(self, other):
         return not self.__eq__(other)
-
+    """
+    toString of curve
+    """
     def __str__(self):
         return "\"%s\" => y^2 = x^3 + %dx + %d (mod %d)" % (self.name, self.a, self.b, self.field.p)
 
@@ -75,7 +101,12 @@ class SubGroup(object):
     def __repr__(self):
         return self.__str__()
 
+"""
+G has an identity element e.  
+There is an e in G such that x + e = e + x = x for all x ∈ G.
 
+e = Infinity
+"""
 class Inf(object):
     def __init__(self, curve, x=None, y=None):
         self.x = x
@@ -112,7 +143,9 @@ class Inf(object):
     def __repr__(self):
         return self.__str__()
 
-
+"""
+Point on curve
+"""
 class Point(object):
     def __init__(self, curve, x, y):
         self.curve = curve
@@ -120,7 +153,7 @@ class Point(object):
         self.y = y
         self.p = self.curve.field.p
         self.on_curve = True
-        if not self.curve.on_curve(self.x, self.y):
+        if not self.curve.on_curve(self.x, self.y): # Check if point is on curve
             warnings.warn("Point (%d, %d) is not on curve \"%s\"" % (self.x, self.y, self.curve))
             self.on_curve = False
 
@@ -129,15 +162,24 @@ class Point(object):
             return (3 * p.x**2 + self.curve.a) * mod_inv(2 * p.y, self.p)
         else:
             return (p.y - q.y) * mod_inv(p.x - q.x, self.p)
-
+    """
+    equals function - returns True if given point is equal to this point. 
+    returns False otherwise.
+    Called each time we do point1 == point2
+    """
     def __eq__(self, other):
         if not isinstance(other, Point):
             return False
         return self.x == other.x and self.y == other.y and self.curve == other.curve
-
+    """
+    not equals function - returns true if given point is not equal to this point.
+    Called each time we do point1 != point2
+    """
     def __ne__(self, other):
         return not self.__eq__(other)
-
+    """
+    Add given point to this point. Called each time we do point1 + point2
+    """
     def __add__(self, other):
         if isinstance(other, Inf):
             return self
@@ -154,7 +196,9 @@ class Point(object):
         else:
             raise TypeError("Unsupported operand type(s) for +: '%s' and '%s'" % (other.__class__.__name__,
                                                                                   self.__class__.__name__))
-
+    """
+    Sub given point from this point. Called each time we do point1 - point2
+    """
     def __sub__(self, other):
         if isinstance(other, Inf):
             return self.__add__(other)
@@ -163,12 +207,14 @@ class Point(object):
         else:
             raise TypeError("Unsupported operand type(s) for -: '%s' and '%s'" % (other.__class__.__name__,
                                                                                   self.__class__.__name__))
-
+    """
+    Multiply point by integer. Called each time we do n*point
+    """
     def __mul__(self, other):
-        if isinstance(other, Inf):
+        if isinstance(other, Inf): # Infinity*Point = Point+Point+.... = Infinity
             return Inf(self.curve)
         if isinstance(other, int) or isinstance(other, LONG_TYPE):
-            if other % self.curve.field.n == 0:
+            if other % self.curve.field.n == 0: # x + e = e + x => x - x = x+e - (x+e) = e - e = e + (-e) = e
                 return Inf(self.curve)
             if other < 0:
                 addend = Point(self.curve, self.x, -self.y % self.p)
@@ -187,7 +233,9 @@ class Point(object):
 
     def __rmul__(self, other):
         return self.__mul__(other)
-
+    """
+    toString of point
+    """
     def __str__(self):
         return "(%d, %d) %s %s" % (self.x, self.y, "on" if self.on_curve else "off", self.curve)
 
