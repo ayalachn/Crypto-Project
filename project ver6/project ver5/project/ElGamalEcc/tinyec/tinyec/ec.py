@@ -181,12 +181,12 @@ class Point(object):
     Add given point to this point. Called each time we do point1 + point2
     """
     def __add__(self, other):
-        if isinstance(other, Inf):
+        if isinstance(other, Inf): # P+O = P
             return self
-        if isinstance(other, Point):
-            if self.x == other.x and self.y != other.y:
+        if isinstance(other, Point): # P + Q 
+            if self.x == other.x and self.y != other.y: # Case 2: x1=x2; y1 = -y2
                 return Inf(self.curve)
-            elif self.curve == other.curve:
+            elif self.curve == other.curve: # Case 1 & 3: case x1!=x2 and case x1=x2; y1=y2
                 m = self.__m(self, other)
                 x_r = (m**2 - self.x - other.x) % self.p
                 y_r = -(self.y + m * (x_r - self.x)) % self.p
@@ -200,9 +200,9 @@ class Point(object):
     Sub given point from this point. Called each time we do point1 - point2
     """
     def __sub__(self, other):
-        if isinstance(other, Inf):
+        if isinstance(other, Inf): # P - O = P + O = P
             return self.__add__(other)
-        if isinstance(other, Point):
+        if isinstance(other, Point): # P - Q = (x1, y1) - (x2, y2) = (x1, y1) + (x2, -y2)
             return self.__add__(Point(self.curve, other.x, -other.y % self.p))
         else:
             raise TypeError("Unsupported operand type(s) for -: '%s' and '%s'" % (other.__class__.__name__,
@@ -216,16 +216,16 @@ class Point(object):
         if isinstance(other, int) or isinstance(other, LONG_TYPE):
             if other % self.curve.field.n == 0: # x + e = e + x => x - x = x+e - (x+e) = e - e = e + (-e) = e
                 return Inf(self.curve)
-            if other < 0:
-                addend = Point(self.curve, self.x, -self.y % self.p)
+            if other < 0: # -n*(x,y) = -(x,y) - (x,y) - ... - (x,y) = (x,-y)+(x,-y)+..+(x,-y)
+                addend = Point(self.curve, self.x, -self.y % self.p) # P = (x,-y)
             else:
-                addend = self
-            result = Inf(self.curve)
+                addend = self # P = (x,y)
+            result = Inf(self.curve) # res = 0
             # Iterate over all bits starting by the LSB
             for bit in reversed([int(i) for i in bin(abs(other))[2:]]):
                 if bit == 1:
-                    result += addend
-                addend += addend
+                    result += addend # res = P + P + ... + P
+                addend += addend #  Q = P+P
             return result
         else:
             raise TypeError("Unsupported operand type(s) for *: '%s' and '%s'" % (other.__class__.__name__,
