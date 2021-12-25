@@ -72,7 +72,7 @@ except ImportError:
 
         return v0, v1
 
-    def _decrypt_int(k, v, n=32):
+    def _decrypt_int(k, v, n=32): #hello
         v0, v1 = v
 
         delta, mask = 0x9e3779b9, 0xffffffff
