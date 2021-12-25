@@ -5,7 +5,6 @@ Created on Fri Dec 10 18:25:46 2021
 """
 
 import XTEA.xtea as XTEA
-import SHA256.sha256 as SHA256
 from RSA_.rsa import RSA
 import ElGamalEcc.ElGamalEcc as elgamal
 import os
@@ -19,47 +18,40 @@ class Sender:
     # RSA:
     RsaE = None # RSA public encryption key
     RsaN = None # RSA n public modolus
-    rsa = RSA() # instance of RSA class
+    rsa = RSA() # Instance of RSA class
     
     # XTEA:
-    XTEA_key = os.urandom(16)   # generate secret symmetric key for XTEA
-    print("THE XTEA KEY IS: (GENERATED)")
-    print(XTEA_key)
+    XTEA_key = os.urandom(16)   # Generate secret symmetric key for XTEA
     XTEA_iv = None
     
     XTEA_encryptedKey=None
     
     # EL-GAMAL ON EC:
-    ElGamal = elgamal.ElGamalEcc(23) # Sender's El-Gamal secret key is 23.
+    ElGamal = elgamal.ElGamalEcc(23) # Sender's El-Gamal secret key is 23 (chosen randomly from the interval: [1, n-1]).
     
-    # set sender's plain text - this text will be encrypted using XTEA on OFB and 
+    # Set sender's plain text - this text will be encrypted using XTEA on OFB and 
     # signed using El-Gamal on ECC.
     def setMessage(self, msg):
         self.msg=msg
-        self.XTEA_iv = os.urandom(8)     # generate IV for XTEA
+        self.XTEA_iv = os.urandom(8) # Generate IV for XTEA
                     
-    # receive public RSA key for encryption and RSA's n modolous
+    # Receive public RSA key for encryption and RSA's n modulo
     def setRsaPublicKey(self, RsaE, RsaN):
         self.RsaE, self.RsaN = RsaE, RsaN
     
-    # encrypts XTEA secret symmetric key.
-    # returns the encrypted XTEA key and its digital signature.
+    # Encrypts XTEA secret symmetric key.
+    # Returns the encrypted XTEA key and its digital signature.
     def getEncryptedXTEAKey(self):
-        # encrypt XTEAKey using bob's RSA public key e and public modolus n
-        print("XTEA KEY AFTER HEXLIFY:\n", str(binascii.hexlify(self.XTEA_key).decode("utf-8")))
-        self.XTEA_encryptedKey = self.rsa.encrypt(message=str(binascii.hexlify(self.XTEA_key).decode("utf-8")), file_name = 'public_keys.txt', block_size = 2) # change this to variables? 
+        # Encrypt XTEAKey using bob's RSA public key e and public modolus n
+        self.XTEA_encryptedKey = self.rsa.encrypt(message=str(binascii.hexlify(self.XTEA_key).decode("utf-8")), file_name = 'public_keys.txt', block_size = 2)
 
-        print("RSA RETURN VAL:")
-        print(self.XTEA_encryptedKey)
-        
-        # generate digital signature to the hashed XTEA key using El-Gamal on EC
+        # Generate digital signature to the hashed XTEA key using El-Gamal on EC
         r,s = self.digitalSignMessage(str(binascii.hexlify(self.XTEA_key).decode("utf-8")))
 
         return self.XTEA_encryptedKey, self.XTEA_iv, r, s # return encrypted key with digital signature {r, s}
     
     # generates digital signature {r, s} using El-Gamal algorithm on Elliptic Curves
     def digitalSignMessage(self, message):
-        print("ALICE signs ", message)
         r, s = self.ElGamal.digitalSignMessage(message)
         return r, s 
     
@@ -70,12 +62,12 @@ class Sender:
     # XTEA_iv: XTEA's public initial vector
     # {r, s}: message's digital signature (via El-Gamal on EC)   
     def getEncryptMessage(self):
-       # encrypt plain text via XTEA on OFB
+       # Encrypt plain text via XTEA on OFB
        XTEA_Encryptor = XTEA.XTEACipher(key=self.XTEA_key, IV=self.XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
 
        cipherText =  XTEA_Encryptor.encrypt(self.msg)
        
-       # digital sign message (via El-Gamal on EC)
+       # Digital sign message (via El-Gamal on EC)
        r, s = self.digitalSignMessage(self.msg)
        
        return cipherText, r, s
@@ -87,7 +79,7 @@ class Receiver:
     rsa = RSA()
     
     # EL-GAMAL ON EC:
-    ElGamal = elgamal.ElGamalEcc(17) # Receiver's El-Gamal secret key is 17.  
+    ElGamal = elgamal.ElGamalEcc(17) # Receiver's El-Gamal secret key is 17 (chosen randomly from the interval: [1, n-1]).
     
     # XTEA:
     XTEA_key=None
@@ -95,37 +87,31 @@ class Receiver:
     
     # Returns public key for RSA encryption: {e, n}
     def getRsaPublicKey(self):
-        self.rsa.chooseKeys() # ************ sign public key?
+        self.rsa.chooseKeys()
         return self.rsa.getPublicKey(), self.rsa.getN()
     
-    # deciphers encrypted XTEA key (via RSA) and validates it by its
+    # Deciphers encrypted XTEA key (via RSA) and validates it by its
     # digital signature {r, s}
     def setXTEAKey(self, encryptedXTEAkey, XTEA_iv, r, s):
-        # decrypt using RSA
-        print("the key to decrypt in rsa is:")
-        print(encryptedXTEAkey)
+        # Decrypt using RSA
         self.XTEA_key = self.rsa.decrypt(encryptedXTEAkey, block_size = 2)
         
-      # print("XTEA key decrypted utf-8: ", binascii.unhexlify(self.XTEA_key)) :)
         self.XTEA_Encryptor = XTEA.XTEACipher(key=binascii.unhexlify(self.XTEA_key), IV=XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
         
-        print("VERIFY: ", self.XTEA_key)
-        # self.XTEA_Encryptor = XTEA.XTEACipher(key=bytes(self.XTEA_key, 'utf-8'), IV=XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
-        # authenticate message using El-Gamal on EC
+        # Authenticate message using El-Gamal on EC
         if not self.ElGamal.verifyDigitalSignature(m=self.XTEA_key, r=r, s=s):
-            print("Signature of XTEA key was that sent by Sender is invalid.") # add here a chance to fix the situation?
+            print("Signature of XTEA key that was sent by Sender is invalid.")
             return False
-        return True # signature is valid
+        return True # Signature is valid
     
-    # decypher input cipher text (via XTEA on OFB) and validate
+    # Decypher input cipher text (via XTEA on OFB) and validate
     # its digital signature {r, s}. Returns decrypted plain text.
     def decryptCipherMsg(self, cipherText, r, s):
-        # decrypt cipher text using XTEA on OFB
+        # Decrypt cipher text using XTEA on OFB
         plainText = self.XTEA_Encryptor.decrypt(cipherText).decode('utf-8')
-        print("BOB XTEA DECRYPT: ",plainText)
-        # validate digital signature of message
+        # Validate digital signature of message
         if not self.ElGamal.verifyDigitalSignature(m=plainText, r=r, s=s):
-            print("Signature of messsage from Sender is invalid.") # add here a chance to fix the situation?
+            print("Signature of messsage from Sender is invalid.")
             return None
         return plainText
     
@@ -141,35 +127,37 @@ bob.ElGamal.setOthersPublicKey(alice.ElGamal.getMyPublicKey())
 
 RsaE, RsaN = bob.getRsaPublicKey()
 alice.setRsaPublicKey(RsaE, RsaN)
-alicePlainText = "Hello World"
-print("Alice wants to encrypt: ", alicePlainText)
-alice.setMessage(alicePlainText) # alice sets plain text to encrypt and sends to bob
-encrypted_key,iv,R,s = alice.getEncryptedXTEAKey() #CHANGE VARS NAME ****
+
+alicePlainText = "\nDear Bob,\nIt was nice seeing you at the party last night!\nHope to meet you again soon,\nAlice\n"
+print("\nAlice's message to Bob before encryption:\n", alicePlainText)
+
+alice.setMessage(alicePlainText) # Alice sets plain text to encrypt and sends to Bob
+encrypted_key,iv,R,s = alice.getEncryptedXTEAKey()
 bob.setXTEAKey(encrypted_key,iv,R,s)
 
-# # both parties hold the secret key for the symmetric algorithm - 
-# # we can now send the message from alice to bob using XTEA (the symmetric algorithm)
+# Both parties hold the secret key for the symmetric algorithm - 
+# we can now send the message from Alice to Bob using XTEA (the symmetric algorithm)
 cipherText, r, s=alice.getEncryptMessage()
 bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
-print("Bob's decrypted text: ", bobPlainText)
+print("\nBob's received message after decryption:\n", bobPlainText)
 
 # Algorithm check
 if bobPlainText != alicePlainText:
-    print("Decryption unsuccessful")
+    print("Decryption was unsuccessful.\n")
 else:
-    print("Decryption successful")  
+    print("Decryption was successful\.n")  
     
-    
-alicePlainText = "Bye World"
-print("Alice wants to encrypt: ", alicePlainText)
-alice.setMessage(alicePlainText) # alice sets plain text to encrypt and send to bob
+# A second message from Alice to Bob to demonstrate choosing a random IV for XTEA
+alicePlainText = "\nDear Bob,\nThank you for the flowers.\nHope to see you again tomorrow,\nAlice\n"
+print("Alice's message to Bob before encryption:\n", alicePlainText)
+alice.setMessage(alicePlainText) # Alice sets plain text to encrypt and send to bob
 cipherText, r, s=alice.getEncryptMessage()
 bob.setIV(alice.getIV())
 bobPlainText=bob.decryptCipherMsg(cipherText, r, s)
-print("Bob's decrypted text: ", bobPlainText)
+print("\nBob's received message after decryption:\n", bobPlainText)
 
 # Algorithm check
 if bobPlainText != alicePlainText:
-    print("Decryption unsuccessful")
+    print("Decryption was unsuccessful.")
 else:
-    print("Decryption successful")      
+    print("Decryption was successful.")      
