@@ -106,7 +106,7 @@ class Receiver:
         print(encryptedXTEAkey)
         self.XTEA_key = self.rsa.decrypt(encryptedXTEAkey, block_size = 2)
         
-        print("XTEA key decrypted utf-8: ", binascii.unhexlify(self.XTEA_key))
+      # print("XTEA key decrypted utf-8: ", binascii.unhexlify(self.XTEA_key))
         self.XTEA_Encryptor = XTEA.XTEACipher(key=binascii.unhexlify(self.XTEA_key), IV=XTEA_iv, mode=XTEA.MODE_OFB, segment_size=64)
         
         print("VERIFY: ", self.XTEA_key)
