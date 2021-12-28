@@ -35,7 +35,7 @@ class ElGamalEcc:
     field = SubGroup(p=29, g=(5, 7), n=31, h=1) # G = {5, 7}, which has order of 31
     
     """
-    Create Elliptic Curve y2 ≡ x3 - x + 16 (mod 31), over given field (above).
+    Create Elliptic Curve y2 ≡ x3 - x + 16 (mod 29), over given field (above).
     Curve Parameters:
         a = -1
         b = 16
