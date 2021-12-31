@@ -42,7 +42,7 @@ class ElGamalEcc:
     """
     curve = Curve(a=-1, b=16, field=field, name='p1707') # y2 ≡ x3 - x + 16 (mod 29)
     G = curve.g                     # set G=(5,7) - generator of curve
-    n = 29  # THIS IS P!                         
+    n = 31  # THIS IS P!                         
     
     def __init__(self, prKey): # class constructor
         """
