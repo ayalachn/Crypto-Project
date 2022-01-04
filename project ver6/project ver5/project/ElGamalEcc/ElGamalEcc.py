@@ -11,9 +11,8 @@ algorithm, calculations based on ECC.
 
 """
 from tinyec.ec import SubGroup, Curve, Point, mod_inv, Inf
-import hashlib
-import binascii
 from random import randrange
+import SHA256.sha256 as sha256
 
 """
 El-Gamal on ECC. Holds function for computing & verifying digital signatures.
@@ -42,7 +41,7 @@ class ElGamalEcc:
     """
     curve = Curve(a=-1, b=16, field=field, name='p1707') # y2 ≡ x3 - x + 16 (mod 29)
     G = curve.g                     # set G=(5,7) - generator of curve
-    n = 31  # THIS IS P!                         
+    n = 31                      
     
     def __init__(self, prKey): # class constructor
         """
@@ -70,8 +69,7 @@ class ElGamalEcc:
             1. Create a hash of the message e=HASH(m)
             Our hash function in SHA-256.
             """
-        e = str(hashlib.sha256(m.encode('utf-8')).hexdigest())
-        
+        e = sha256.generate_hash(m.encode('utf-8')).hex()        
         e = str(bin(int(e, 16))) # Convert from hex to binary
         """
         2. Let z be n leftmost bits of e (n=31 in our case)
@@ -116,7 +114,7 @@ class ElGamalEcc:
         Bob will check the digital signature:
         1. Create a hash of the message e=HASH(m)
         """
-        e = str(hashlib.sha256(m.encode('utf-8')).hexdigest())
+        e = sha256.generate_hash(m.encode('utf-8')).hex()
         e = str(bin(int(e, 16))) # Convert from hex to binary
         """
         2. z will be the n leftmost bits of e (n=31)

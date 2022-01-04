@@ -17,6 +17,8 @@ def generate_hash(message: bytearray) -> bytearray:
     The argument should be a bytes, bytearray, or
     string object."""
 
+    # The isinstance() function returns True if the specified object is of the specified type,
+    # otherwise False.
     if isinstance(message, str):
         message = bytearray(message, 'ascii')
     elif isinstance(message, bytes):
